@@ -1,0 +1,5 @@
+Package: Namespacer
+Type: Package
+Title: Adds namespace names before functions
+Version: 0.0.0.1
+RoxygenNote: 7.3.1
