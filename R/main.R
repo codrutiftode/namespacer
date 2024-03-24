@@ -1,27 +1,84 @@
-#' Fahrenheit conversion
-#'
-#' Convert degrees Fahrenheit temperatures to degrees Celsius
-#' @param F_temp The temperature in degrees Fahrenheit
-#' @return The temperature in degrees Celsius
-#' @examples 
-#' temp1 <- F_to_C(50);
-#' temp2 <- F_to_C( c(50, 63, 23) );
-#' @export
-F_to_C <- function(F_temp){
-  C_temp <- (F_temp - 32) * 5/9;
-  return(C_temp);
+# install.packages("dplyr")
+library(dplyr)
+library(rstudioapi)
+
+get_active_libs <- function() {
+  ctx <- getSourceEditorContext()
+  contents <- ctx$contents
+  active_libs <- lapply(contents, function(x)
+    stri_extract_first(
+      x, regex = "(?<=library\\()[a-zA-Z0-9.]+[a-z](?=\\))"))
+  active_libs <- active_libs[!is.na(active_libs)]
+  return(active_libs)
 }
 
-#' Celsius conversion
-#'
-#' Convert degrees Celsius temperatures to degrees Fahrenheit
-#' @param C_temp The temperature in degrees Celsius
-#' @return The temperature in degrees Fahrenheit
+get_lib_funcs <- function(p) {
+  funcs <- lsf.str(paste("package:", p, sep=""))
+  return(as.list(funcs))
+}
+
+get_funcs_in_str <- function(s) {
+  if (startsWith(trimws(s), "#")) return(data.frame())
+  
+  # Allows one space between function name and ()
+  matched_pos <- stri_locate_all_regex(s, "(?<!::)[a-zA-Z.][a-zA-Z0-9._]*(?=( |)\\()")
+  matches <- as.data.frame(matched_pos[[1]])
+  
+  to_remove <- c("function", "library", "return", 
+                 "c", "lapply", "sapply", "paste", 
+                 "is.na", "if", "for")
+  
+  do_substr <- function(x, y) substr(s, x, y)
+  matches <- matches %>%
+    mutate(func_name = mapply(do_substr, start, end)) %>%
+    select(-end) %>%
+    filter(!(func_name %in% to_remove)) %>%
+    na.omit()
+  
+  return(matches)
+}
+
+get_file_lines <- function() {
+  ctx <- getSourceEditorContext()
+  return(ctx$contents)
+}
+
+get_lib_for_func <- function(libs, func) {
+  for (lib in libs) {
+    lib_funcs <- get_lib_funcs(lib)
+    first_occ <- which(unlist(lib_funcs) == func)[1]
+    if (!is.na(first_occ)) {
+      return(lib)
+    }
+  }
+  return(NA)
+}
+
+get_lib_for_funcs <- function(libs, funcs) {
+  curried <- function(func) get_lib_for_func(libs, func)
+  a <- funcs %>%
+    mutate(lib = mapply(curried, func_name))
+}
+
+#' Add namespaces to functions that lack them
 #' @examples 
-#' temp1 <- C_to_F(22);
-#' temp2 <- C_to_F( c(-2, 12, 23) );
+#' addns()
 #' @export
-C_to_F <- function(C_temp){
-  F_temp <- (C_temp * 9/5) + 32;
-  return(F_temp);
+addns <- function() {
+  ctx <- getSourceEditorContext()
+  active_libs <- get_active_libs()
+  file_lines <- get_file_lines()
+  lapply(seq_along(file_lines), function(i) {
+    funcs <- get_funcs_in_str(file_lines[i])
+    if (is.null(dim(funcs)) || nrow(funcs) == 0) return()
+    funcs <- get_lib_for_funcs(active_libs, funcs)
+    funcs <- na.omit(funcs)
+    if (is.null(dim(funcs)) || nrow(funcs) == 0) return()
+    for (j in 1:nrow(funcs)) {
+      row <- funcs[j, ]
+      # Perform operations on the row
+      insertText(c(i, row["start"][[1]]), paste(row["lib"], "::", sep=""), ctx$id)
+    }
+  })
+  return(NULL)
 }
