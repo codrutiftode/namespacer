@@ -1,6 +1,9 @@
-# install.packages("dplyr")
+#' @import dplyr
+#' @import rstudioapi
+#' @import stringi
 library(dplyr)
 library(rstudioapi)
+library(stringi)
 
 get_active_libs <- function() {
   ctx <- rstudioapi::getSourceEditorContext()
