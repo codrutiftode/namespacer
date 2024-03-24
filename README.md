@@ -18,20 +18,14 @@ Two options:
 
 Before:
 
-<code> 
-
+```
 library(some_lib) 
-
 some_func()
-
-</code>
+```
 
 After:
 
-<code> 
-
+``` 
 library(some_lib) 
-
 some_lib::some_func()
-
-</code>
+```
