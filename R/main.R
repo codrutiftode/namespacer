@@ -3,7 +3,7 @@ library(dplyr)
 library(rstudioapi)
 
 get_active_libs <- function() {
-  ctx <- getSourceEditorContext()
+  ctx <- rstudioapi::getSourceEditorContext()
   contents <- ctx$contents
   active_libs <- lapply(contents, function(x)
     stri_extract_first(
@@ -30,16 +30,16 @@ get_funcs_in_str <- function(s) {
   
   do_substr <- function(x, y) substr(s, x, y)
   matches <- matches %>%
-    mutate(func_name = mapply(do_substr, start, end)) %>%
-    select(-end) %>%
-    filter(!(func_name %in% to_remove)) %>%
+    dplyr::mutate(func_name = mapply(do_substr, start, end)) %>%
+    dplyr::select(-end) %>%
+    dplyr::filter(!(func_name %in% to_remove)) %>%
     na.omit()
   
   return(matches)
 }
 
 get_file_lines <- function() {
-  ctx <- getSourceEditorContext()
+  ctx <- rstudioapi::getSourceEditorContext()
   return(ctx$contents)
 }
 
@@ -57,7 +57,7 @@ get_lib_for_func <- function(libs, func) {
 get_lib_for_funcs <- function(libs, funcs) {
   curried <- function(func) get_lib_for_func(libs, func)
   a <- funcs %>%
-    mutate(lib = mapply(curried, func_name))
+    dplyr::mutate(lib = mapply(curried, func_name))
 }
 
 #' Add namespaces to functions that lack them
@@ -65,7 +65,7 @@ get_lib_for_funcs <- function(libs, funcs) {
 #' addns()
 #' @export
 addns <- function() {
-  ctx <- getSourceEditorContext()
+  ctx <- rstudioapi::getSourceEditorContext()
   active_libs <- get_active_libs()
   file_lines <- get_file_lines()
   lapply(seq_along(file_lines), function(i) {
@@ -77,7 +77,7 @@ addns <- function() {
     for (j in 1:nrow(funcs)) {
       row <- funcs[j, ]
       # Perform operations on the row
-      insertText(c(i, row["start"][[1]]), paste(row["lib"], "::", sep=""), ctx$id)
+      rstudioapi::insertText(c(i, row["start"][[1]]), paste(row["lib"], "::", sep=""), ctx$id)
     }
   })
   return(NULL)
