@@ -1,0 +1,4 @@
+# Run the following R code in RStudio
+# if needed: install.packages("devtools")
+library(devtools)
+install_github("codrutiftode/namespacer")
