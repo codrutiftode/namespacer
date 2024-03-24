@@ -1,0 +1,4 @@
+Name: Namespacer
+Description: Adds :: to every function
+Binding: addns
+Interactive: false
